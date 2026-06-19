@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vouchers JAD 2B</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f1117;
+    --surface: #181c27;
+    --border: #252a38;
+    --accent: #3b82f6;
+    --accent-dim: rgba(59,130,246,0.12);
+    --text: #e8eaf0;
+    --text-muted: #6b7280;
+    --text-dim: #9ca3af;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Inter', sans-serif;
+    --radius: 10px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border);
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .logo-dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px rgba(59,130,246,0.6);
+  }
+  h1 { font-size: 15px; font-weight: 600; color: var(--text); }
+  .badge-total {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 4px 10px;
+    background: var(--accent-dim);
+    border: 1px solid rgba(59,130,246,0.25);
+    border-radius: 20px;
+    color: var(--accent);
+  }
+  .updated-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+
+  .month-section { padding: 24px; }
+  .month-block { margin-bottom: 36px; }
+  .month-block:last-child { margin-bottom: 0; }
+  .month-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .month-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .month-divider { flex: 1; height: 1px; background: var(--border); }
+  .month-count { font-family: var(--mono); font-size: 10px; color: var(--text-muted); }
+
+  .captures-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px;
+  }
+
+  .capture-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color .2s, transform .2s;
+  }
+  .capture-card:hover { border-color: rgba(59,130,246,.4); transform: translateY(-2px); }
+  .capture-thumb {
+    width: 100%;
+    aspect-ratio: 4/3;
+    object-fit: cover;
+    display: block;
+    background: #0d1016;
+  }
+  .capture-meta {
+    padding: 8px 12px;
+    font-size: 11px;
+    color: var(--text-dim);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .empty-month {
+    font-size: 12px;
+    color: var(--text-muted);
+    padding: 16px;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    text-align: center;
+  }
+
+  #lightbox {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.85);
+    z-index: 1000;
+    align-items: center; justify-content: center;
+    padding: 24px;
+  }
+  #lightbox.open { display: flex; }
+  #lightbox img { max-width: 90vw; max-height: 88vh; object-fit: contain; border-radius: var(--radius); }
+  #lightbox-close {
+    position: absolute; top: 16px; right: 20px;
+    font-size: 26px; color: var(--text-muted);
+    background: none; border: none; cursor: pointer;
+  }
+
+  .state-msg {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 60px 24px; gap: 10px; color: var(--text-muted); text-align: center;
+  }
+  .state-msg h2 { font-size: 14px; font-weight: 500; color: var(--text-dim); }
+  .state-msg p { font-size: 12px; max-width: 300px; line-height: 1.6; }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="logo-dot"></div>
+    <h1 id="dash-title">Vouchers</h1>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <span class="badge-total" id="badge-total">0 capturas</span>
+    <span class="updated-label" id="updated-label"></span>
+  </div>
+</header>
+
+<div class="month-section" id="month-section">
+  <div class="state-msg" id="loading-msg"><h2>Cargando vouchers...</h2></div>
+</div>
+
+<div id="lightbox">
+  <button id="lightbox-close" aria-label="Cerrar">&times;</button>
+  <img id="lightbox-img" src="" alt="">
+</div>
+
+<script>
+const MONTH_LABELS = {
+  '01':'Enero','02':'Febrero','03':'Marzo','04':'Abril','05':'Mayo','06':'Junio',
+  '07':'Julio','08':'Agosto','09':'Setiembre','10':'Octubre','11':'Noviembre','12':'Diciembre'
+};
+
+function getParam(key){ return new URLSearchParams(window.location.search).get(key); }
+
+function formatDate(str){
+  if(!str) return '';
+  const [y,m,d] = str.split('-');
+  return `${d||''} ${MONTH_LABELS[m]||''} ${y}`.trim();
+}
+
+async function load(){
+  const dashId = getParam('d') || 'jad-2b';
+  let data;
+  try{
+    const res = await fetch(`capturas/${dashId}/index.json?v=${Date.now()}`);
+    if(!res.ok) throw 0;
+    data = await res.json();
+  }catch(e){
+    document.getElementById('month-section').innerHTML = `
+      <div class="state-msg"><h2>Sin vouchers aún</h2>
+      <p>No se encontró el índice para <strong style="color:var(--accent);font-family:var(--mono)">${dashId}</strong>.</p></div>`;
+    return;
+  }
+
+  document.getElementById('dash-title').textContent = data.nombre || dashId;
+  if(data.actualizado){
+    document.getElementById('updated-label').textContent = 'act. ' + formatDate(data.actualizado);
+  }
+
+  const today = new Date().toISOString().slice(0,10);
+  const capturas = (data.capturas || []).filter(c => !c.fecha || c.fecha <= today);
+
+  document.getElementById('badge-total').textContent =
+    capturas.length + (capturas.length===1 ? ' captura' : ' capturas');
+
+  // Agrupar por clave AAAAMM
+  const byKey = {};
+  capturas.forEach(c => {
+    const key = c.mes || (c.fecha ? c.fecha.slice(0,7).replace('-','') : '000000');
+    if(!byKey[key]) byKey[key] = [];
+    byKey[key].push(c);
+  });
+
+  const keys = Object.keys(byKey).sort();
+  const section = document.getElementById('month-section');
+
+  if(!keys.length){
+    section.innerHTML = `<div class="state-msg"><h2>Aún no hay vouchers</h2>
+      <p>Los vouchers aparecerán aquí a medida que los vayas subiendo cada mes.</p></div>`;
+    return;
+  }
+
+  section.innerHTML = keys.map(key => {
+    const y = key.slice(0,4), m = key.slice(4,6);
+    const label = `${MONTH_LABELS[m] || m} ${y}`;
+    const imgs = byKey[key];
+    const grid = imgs.length
+      ? `<div class="captures-grid">${imgs.map(c => `
+          <div class="capture-card" onclick="openLB('capturas/${dashId}/${c.archivo}','${(c.nombre||c.archivo).replace(/'/g,"\\'")}')">
+            <img class="capture-thumb" src="capturas/${dashId}/${c.archivo}" loading="lazy" alt="${c.nombre||c.archivo}">
+            <div class="capture-meta">${c.nombre || c.archivo}</div>
+          </div>`).join('')}</div>`
+      : `<div class="empty-month">Sin vouchers este mes</div>`;
+    return `<div class="month-block">
+      <div class="month-header">
+        <span class="month-title">${label}</span>
+        <div class="month-divider"></div>
+        <span class="month-count">${imgs.length} imagen${imgs.length===1?'':'es'}</span>
+      </div>
+      ${grid}
+    </div>`;
+  }).join('');
+}
+
+function openLB(src, alt){
+  document.getElementById('lightbox-img').src = src;
+  document.getElementById('lightbox-img').alt = alt;
+  document.getElementById('lightbox').classList.add('open');
+}
+document.getElementById('lightbox-close').addEventListener('click', () =>
+  document.getElementById('lightbox').classList.remove('open'));
+document.getElementById('lightbox').addEventListener('click', function(e){
+  if(e.target === this) this.classList.remove('open');
+});
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape') document.getElementById('lightbox').classList.remove('open');
+});
+
+load();
+</script>
+</body>
+</html>
