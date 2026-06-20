@@ -147,6 +147,7 @@
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 </style>
+<base target="_blank">
 </head>
 <body>
 
@@ -184,6 +185,16 @@ function formatDate(str){
   return `${d||''} ${MONTH_LABELS[m]||''} ${y}`.trim();
 }
 
+// Verifica si una imagen existe (HEAD request)
+async function imageExists(url) {
+  try {
+    const res = await fetch(url, { method: 'HEAD', cache: 'no-store' });
+    return res.ok && res.status === 200;
+  } catch (e) {
+    return false;
+  }
+}
+
 async function load(){
   const dashId = getParam('d') || 'jad-2b';
   let data;
@@ -206,12 +217,22 @@ async function load(){
   const today = new Date().toISOString().slice(0,10);
   const capturas = (data.capturas || []).filter(c => !c.fecha || c.fecha <= today);
 
+  // Verificar qué imágenes realmente existen
+  const validCapturas = [];
+  for (const c of capturas) {
+    const imgUrl = `capturas/${dashId}/${c.archivo}`;
+    const exists = await imageExists(imgUrl);
+    if (exists) {
+      validCapturas.push(c);
+    }
+  }
+
   document.getElementById('badge-total').textContent =
-    capturas.length + (capturas.length===1 ? ' captura' : ' capturas');
+    validCapturas.length + (validCapturas.length===1 ? ' captura' : ' capturas');
 
   // Agrupar por clave AAAAMM
   const byKey = {};
-  capturas.forEach(c => {
+  validCapturas.forEach(c => {
     const key = c.mes || (c.fecha ? c.fecha.slice(0,7).replace('-','') : '000000');
     if(!byKey[key]) byKey[key] = [];
     byKey[key].push(c);
@@ -232,7 +253,7 @@ async function load(){
     const imgs = byKey[key];
     const grid = imgs.length
       ? `<div class="captures-grid">${imgs.map(c => `
-          <div class="capture-card" onclick="openLB('capturas/${dashId}/${c.archivo}','${(c.nombre||c.archivo).replace(/'/g,"\\'")}')">
+          <div class="capture-card" onclick="openLB('capturas/${dashId}/${c.archivo}','${(c.nombre||c.archivo).replace(/'/g,"\'")}')">
             <img class="capture-thumb" src="capturas/${dashId}/${c.archivo}" loading="lazy" alt="${c.nombre||c.archivo}">
             <div class="capture-meta">${c.nombre || c.archivo}</div>
           </div>`).join('')}</div>`
